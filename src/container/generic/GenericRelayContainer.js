@@ -259,9 +259,6 @@ function createContainerComponent(
       return mutationIDs.map(id => mutationQueue.getTransaction(id));
     }
 
-
-
-
     _updateQueryResolvers(): void {
       var fragmentPointers = this._fragmentPointers;
       var queryResolvers = this._queryResolvers;
@@ -317,36 +314,6 @@ function createContainerComponent(
     }
 
 }
-
-  function getFragment(
-    fragmentName: string,
-    route: RelayQueryConfigSpec,
-    variables: Variables
-  ): RelayQuery.Fragment {
-    var fragmentBuilder = fragments[fragmentName];
-    invariant(
-      fragmentBuilder,
-      'GenericRelayContainer: Expected `%s` to have a query fragment named `%s`.',
-      containerName,
-      fragmentName
-    );
-    var fragment = buildContainerFragment(
-      containerName,
-      fragmentName,
-      fragmentBuilder,
-      initialVariables
-    );
-    // TODO: Allow routes without names, #7856965.
-    var metaRoute = RelayMetaRoute.get(route.name);
-    if (prepareVariables) {
-      variables = prepareVariables(variables, metaRoute);
-    }
-    return RelayQuery.Fragment.create(
-      fragment,
-      metaRoute,
-      variables
-    );
-  }
 
   return GenericRelayContainer;
 }
