@@ -1,6 +1,5 @@
 /**
 * @providesModule createQuerySetAndFragmentPointers
-* @typechecks
 * @flow
 */
 
@@ -11,7 +10,7 @@ import type {
 import type {RelayQuerySet} from 'RelayInternalTypes';
 import type {RelayQLFragmentBuilder} from 'buildRQL';
 import type {ConcreteFragment} from 'ConcreteQuery';
-import type {RelayContainerSpec} from 'RelayContainer';
+import type {RelayContainerSpec, RelayQueryConfigSpec} from 'RelayContainer';
 
 
 const RelayMetaRoute = require('RelayMetaRoute');
@@ -21,7 +20,7 @@ const RelayStoreData = require('RelayStoreData');
 const buildRQL = require('buildRQL');
 const invariant = require('invariant');
 const forEachObject = require('forEachObject');
-
+const warning = require('warning');
 
 
 const GraphQLFragmentPointer = require('GraphQLFragmentPointer');
@@ -31,7 +30,7 @@ function createQuerySetAndFragmentPointers(
   containerName: string,
   storeData: RelayStoreData,
   variables: Variables,
-  route: RelayMetaRoute,
+  route: RelayQueryConfigSpec,
   containerSpec: RelayContainerSpec,
   currentData: {[propName: string]: mixed}
 ): {
@@ -88,11 +87,145 @@ function createQuerySetAndFragmentPointers(
   return {fragmentPointers, querySet};
 }
 
+function createFragmentPointers(
+  containerName: string,
+  props: Object,
+  route: RelayQueryConfigSpec,
+  variables: Variables,
+  containerSpec: RelayContainerSpec
+): {[key: string]: ?GraphQLFragmentPointer} {
+
+  const result:{[key: string]: ?GraphQLFragmentPointer}  = {};
+
+  forEachObject(containerSpec.fragments, (fragmentBuilder, fragmentName) => {
+    const propValue = props[fragmentName];
+    warning(
+      propValue !== undefined,
+      'GenericRelayContainer: Expected query `%s` to be supplied to `%s` as ' +
+      'a prop from the parent. Pass an explicit `null` if this is ' +
+      'intentional.',
+      fragmentName,
+      containerName
+    );
+    if (!propValue) {
+      result[fragmentName] = null;
+      return;
+    }
+    const fragment = createFragmentQueryNode(
+      containerName,
+      fragmentName,
+      variables,
+      route,
+      containerSpec
+    );
+    const concreteFragmentHash = fragment.getConcreteNodeHash();
+    let dataIDOrIDs;
+
+    if (fragment.isPlural()) {
+      // Plural fragments require the prop value to be an array of fragment
+      // pointers, which are merged into a single fragment pointer to pass
+      // to the query resolver `resolve`.
+      invariant(
+        Array.isArray(propValue),
+        'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, expected an ' +
+        'array of records because the corresponding fragment is plural.',
+        fragmentName,
+        containerName
+      );
+      if (propValue.length) {
+        dataIDOrIDs = propValue.reduce((acc, item, ii) => {
+          const eachFragmentPointer = item[concreteFragmentHash];
+          invariant(
+            eachFragmentPointer,
+            'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, ' +
+            'expected element at index %s to have query data.',
+            fragmentName,
+            containerName,
+            ii
+          );
+          return acc.concat(eachFragmentPointer.getDataIDs());
+        }, []);
+      } else {
+        // An empty plural fragment cannot be observed; the empty array prop
+        // can be passed as-is to the component.
+        dataIDOrIDs = null;
+      }
+    } else {
+      invariant(
+        !Array.isArray(propValue),
+        'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, expected a ' +
+        'single record because the corresponding fragment is not plural.',
+        fragmentName,
+        containerName
+      );
+      const fragmentPointer = propValue[concreteFragmentHash];
+      if (fragmentPointer) {
+        dataIDOrIDs = fragmentPointer.getDataID();
+      } else {
+        dataIDOrIDs = null;
+      }
+    }
+    result[fragmentName] = dataIDOrIDs ?
+      new GraphQLFragmentPointer(dataIDOrIDs, fragment) :
+      null;
+  });
+  if (__DEV__) {
+    warnAboutMisplacedProps(
+      containerName,
+      props,
+      variables,
+      route,
+      containerSpec,
+      result
+    );
+  }
+
+
+  return result;
+}
+
+function warnAboutMisplacedProps(
+  containerName: string,
+  props: Object,
+  variables: Variables,
+  route: RelayQueryConfigSpec,
+  containerSpec: RelayContainerSpec,
+  fragmentPointers: {[key: string]: ?GraphQLFragmentPointer}
+):void {
+
+  forEachObject(containerSpec.fragments, (fragmentBuilder, fragmentName) => {
+    if (fragmentPointers[fragmentName]) {
+      return;
+    }
+    const fragment = createFragmentQueryNode(
+      containerName,
+      fragmentName,
+      variables,
+      route,
+      containerSpec
+    );
+    const concreteFragmentHash = fragment.getConcreteNodeHash();
+    Object.keys(props).forEach(propName => {
+      warning(
+        fragmentPointers[propName] ||
+        !props[propName] ||
+        !props[propName][concreteFragmentHash],
+        'GenericRelayContainer: Expected record data for prop `%s` on `%s`, ' +
+        'but it was instead on prop `%s`. Did you misspell a prop or ' +
+        'pass record data into the wrong prop?',
+        fragmentName,
+        containerName,
+        propName
+      );
+    });
+  });
+}
+
 function createFragmentQueryNode(
   containerName: string,
   fragmentName: string,
   variables: Variables,
-  route: RelayMetaRoute,
+  route: RelayQueryConfigSpec,
   containerSpec: RelayContainerSpec
 ): RelayQuery.Fragment {
   const fragmentBuilder = containerSpec.fragments[fragmentName];
@@ -141,4 +274,4 @@ function buildContainerFragment(
   return fragment;
 }
 
-module.exports = createQuerySetAndFragmentPointers;
+module.exports = {createQuerySetAndFragmentPointers, createFragmentPointers};

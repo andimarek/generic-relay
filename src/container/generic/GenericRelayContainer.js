@@ -43,7 +43,8 @@ const forEachObject = require('forEachObject');
 const invariant = require('invariant');
 const shallowEqual = require('shallowEqual');
 const warning = require('warning');
-const createQuerySetAndFragmentPointers = require('createQuerySetAndFragmentPointers');
+const {createQuerySetAndFragmentPointers,
+  createFragmentPointers} = require('createQuerySetAndFragmentPointers');
 
 
 var storeData = RelayStoreData.getDefaultInstance();
@@ -54,15 +55,14 @@ type PropsIncludingRoute = {
 }
 
 function createContainerComponent(
-  componentName: string,
-  spec: RelayContainerSpec
+  containerName: string,
+  containerSpec: RelayContainerSpec
 ): any {
-  var containerName = 'Relay(' + componentName + ')';
 
-  var fragments = spec.fragments;
+  var fragments = containerSpec.fragments;
   var fragmentNames = Object.keys(fragments);
-  var initialVariables = spec.initialVariables || {};
-  var prepareVariables = spec.prepareVariables;
+  var initialVariables = containerSpec.initialVariables || {};
+  var prepareVariables = containerSpec.prepareVariables;
 
   const doneState = {done:true, ready:true, aborted:false, stale:false};
 
@@ -140,11 +140,16 @@ function createContainerComponent(
       this.props = nextProps;
       this.route = this.props.route;
       var variables = getVariablesWithPropOverrides(
-        spec,
+        containerSpec,
         nextProps,
-        resetPropOverridesForVariables(spec, nextProps, this.variables)
+        resetPropOverridesForVariables(containerSpec, nextProps, this.variables)
       );
-      this._updateFragmentPointers(nextProps, this.route, variables);
+      this._fragmentPointers =  createFragmentPointers(
+        containerName,
+        this.props,
+        this.route,
+        this.variables,
+         containerSpec);
       this._updateQueryResolvers();
 
       const queryData = this._getQueryData(nextProps);
@@ -191,7 +196,7 @@ function createContainerComponent(
           storeData,
           this.variables,
           this.route,
-          spec,
+          containerSpec,
           this.queryData));
       }
 
@@ -231,7 +236,7 @@ function createContainerComponent(
       invariant(
         dataID != null,
         'GenericRelayContainer.hasOptimisticUpdate(): Expected a record in `%s`.',
-        componentName
+        containerName,
       );
       return storeData.hasOptimisticUpdate(dataID);
     }
@@ -244,7 +249,7 @@ function createContainerComponent(
       invariant(
         dataID != null,
         'GenericRelayContainer.getPendingTransactions(): Expected a record in `%s`.',
-        componentName
+        containerName
       );
       const mutationIDs = storeData.getClientMutationIDs(dataID);
       if (!mutationIDs) {
@@ -284,117 +289,7 @@ function createContainerComponent(
       this._updateState(this.variables, {data:queryData, ...doneState});
     }
 
-    _updateFragmentPointers(
-      props: Object,
-      route: RelayQueryConfigSpec,
-      variables: Variables
-    ): void {
-      const fragmentPointers = this._fragmentPointers;
-      fragmentNames.forEach(fragmentName => {
-        const propValue = props[fragmentName];
-        warning(
-          propValue !== undefined,
-          'GenericRelayContainer: Expected query `%s` to be supplied to `%s` as ' +
-          'a prop from the parent. Pass an explicit `null` if this is ' +
-          'intentional.',
-          fragmentName,
-          componentName
-        );
-        if (!propValue) {
-          fragmentPointers[fragmentName] = null;
-          return;
-        }
-        const fragment = getFragment(fragmentName, route, variables);
-        const concreteFragmentHash = fragment.getConcreteNodeHash();
-        let dataIDOrIDs;
 
-        if (fragment.isPlural()) {
-          // Plural fragments require the prop value to be an array of fragment
-          // pointers, which are merged into a single fragment pointer to pass
-          // to the query resolver `resolve`.
-          invariant(
-            Array.isArray(propValue),
-            'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, expected an ' +
-            'array of records because the corresponding fragment is plural.',
-            fragmentName,
-            componentName
-          );
-          if (propValue.length) {
-            dataIDOrIDs = propValue.reduce((acc, item, ii) => {
-              const eachFragmentPointer = item[concreteFragmentHash];
-              invariant(
-                eachFragmentPointer,
-                'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, ' +
-                'expected element at index %s to have query data.',
-                fragmentName,
-                componentName,
-                ii
-              );
-              return acc.concat(eachFragmentPointer.getDataIDs());
-            }, []);
-          } else {
-            // An empty plural fragment cannot be observed; the empty array prop
-            // can be passed as-is to the component.
-            dataIDOrIDs = null;
-          }
-        } else {
-          invariant(
-            !Array.isArray(propValue),
-            'GenericRelayContainer: Invalid prop `%s` supplied to `%s`, expected a ' +
-            'single record because the corresponding fragment is not plural.',
-            fragmentName,
-            componentName
-          );
-          const fragmentPointer = propValue[concreteFragmentHash];
-          if (fragmentPointer) {
-            dataIDOrIDs = fragmentPointer.getDataID();
-          } else {
-            // TODO: Throw when we have mock data validation, #6332949.
-            dataIDOrIDs = null;
-            if (__DEV__) {
-              if (!route.useMockData && !this._didShowFakeDataWarning) {
-                this._didShowFakeDataWarning = true;
-                warning(
-                  false,
-                  'GenericRelayContainer: Expected prop `%s` supplied to `%s` to ' +
-                  'be data fetched by Relay. This is likely an error unless ' +
-                  'you are purposely passing in mock data that conforms to ' +
-                  'the shape of this component\'s fragment.',
-                  fragmentName,
-                  componentName
-                );
-              }
-            }
-          }
-        }
-        fragmentPointers[fragmentName] = dataIDOrIDs ?
-          new GraphQLFragmentPointer(dataIDOrIDs, fragment) :
-          null;
-      });
-      if (__DEV__) {
-        // If a fragment pointer is null, warn if it was found on another prop.
-        fragmentNames.forEach(fragmentName => {
-          if (fragmentPointers[fragmentName]) {
-            return;
-          }
-          const fragment = getFragment(fragmentName, route, variables);
-          const concreteFragmentHash = fragment.getConcreteNodeHash();
-          Object.keys(props).forEach(propName => {
-            warning(
-              fragmentPointers[propName] ||
-              !props[propName] ||
-              !props[propName][concreteFragmentHash],
-              'GenericRelayContainer: Expected record data for prop `%s` on `%s`, ' +
-              'but it was instead on prop `%s`. Did you misspell a prop or ' +
-              'pass record data into the wrong prop?',
-              fragmentName,
-              componentName,
-              propName
-            );
-          });
-        });
-      }
-    }
 
     _getQueryData(
       props: Object
@@ -460,11 +355,11 @@ function createContainerComponent(
  * TODO: Stop allowing props to override variables, #7856288.
  */
 function getVariablesWithPropOverrides(
-  spec: RelayContainerSpec,
+  containerSpec: RelayContainerSpec,
   props: Object,
   variables: Variables
 ): Variables {
-  var initialVariables = spec.initialVariables;
+  var initialVariables = containerSpec.initialVariables;
   if (initialVariables) {
     var mergedVariables;
     for (var key in initialVariables) {
@@ -485,11 +380,11 @@ function getVariablesWithPropOverrides(
  * TODO: Stop allowing props to override variables, #7856288.
  */
 function resetPropOverridesForVariables(
-  spec: RelayContainerSpec,
+  containerSpec: RelayContainerSpec,
   props: Object,
   variables: Variables
 ): Variables {
-  var initialVariables = spec.initialVariables;
+  var initialVariables = containerSpec.initialVariables;
   for (var key in initialVariables) {
     if (key in props && props[key] != variables[key]) {
       return initialVariables;
@@ -537,26 +432,25 @@ function buildContainerFragment(
 }
 
 function create(
-  componentName: string,
-  spec: RelayContainerSpec
+  containerName: string,
+  containerSpec: RelayContainerSpec
 ): RelayLazyContainer {
-  var containerName = 'Relay(' + componentName + ')';
 
-  var fragments = spec.fragments;
+  var fragments = containerSpec.fragments;
   invariant(
     typeof fragments === 'object' && fragments,
     'Relay.createGenericContainer(%s, ...): Missing `fragments`, which is expected ' +
     'to be an object mapping from `propName` to: () => Relay.QL`...`',
-    componentName
+    containerName
   );
   var fragmentNames = Object.keys(fragments);
-  var initialVariables = spec.initialVariables || {};
-  var prepareVariables = spec.prepareVariables;
+  var initialVariables = containerSpec.initialVariables || {};
+  var prepareVariables = containerSpec.prepareVariables;
 
   var Container;
   function ContainerConstructor(props, callback) {
     if (!Container) {
-      Container = createContainerComponent(componentName, spec);
+      Container = createContainerComponent(containerName, containerSpec);
     }
     return new Container(props, callback);
   }
