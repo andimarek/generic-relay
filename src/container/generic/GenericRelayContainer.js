@@ -61,8 +61,6 @@ function createContainerComponent(
 
   var fragments = containerSpec.fragments;
   var fragmentNames = Object.keys(fragments);
-  var initialVariables = containerSpec.initialVariables || {};
-  var prepareVariables = containerSpec.prepareVariables;
 
   const doneState = {done:true, ready:true, aborted:false, stale:false};
 
@@ -201,7 +199,7 @@ function createContainerComponent(
       }
 
       const onReadyStateChange = readyState => {
-        var {aborted, done, error, ready} = readyState;
+        const {aborted, done, error, ready} = readyState;
         var isComplete = aborted || done || error;
         if (isComplete && this.pending === current) {
           this.pending = null;
