@@ -26,6 +26,7 @@ const warning = require('warning');
 const GraphQLFragmentPointer = require('GraphQLFragmentPointer');
 const RelayRecord = require('RelayRecord');
 
+
 function createQuerySetAndFragmentPointers(
   containerName: string,
   storeData: RelayStoreData,
@@ -99,14 +100,8 @@ function createFragmentPointers(
 
   forEachObject(containerSpec.fragments, (fragmentBuilder, fragmentName) => {
     const propValue = props[fragmentName];
-    warning(
-      propValue !== undefined,
-      'GenericRelayContainer: Expected query `%s` to be supplied to `%s` as ' +
-      'a prop from the parent. Pass an explicit `null` if this is ' +
-      'intentional.',
-      fragmentName,
-      containerName
-    );
+    warnAboutMissingProp(propValue, fragmentName, containerName);
+
     if (!propValue) {
       result[fragmentName] = null;
       return;
@@ -182,6 +177,19 @@ function createFragmentPointers(
 
 
   return result;
+}
+
+function warnAboutMissingProp(propValue: Object, fragmentName: string,
+  containerName: string): void {
+  warning(
+    propValue !== undefined,
+    'GenericRelayContainer: Expected query `%s` to be supplied to `%s` as ' +
+    'a prop from the parent. Pass an explicit `null` if this is ' +
+    'intentional.',
+    fragmentName,
+    containerName
+  );
+
 }
 
 function warnAboutMisplacedProps(
