@@ -13,7 +13,7 @@
 
 'use strict';
 
-import type {RootQueries} from 'RelayContainer';
+import type {RootQueries} from 'GenericRelayContainer';
 
 import type {RelayQLQueryBuilder} from 'buildRQL';
 const invariant = require('invariant');

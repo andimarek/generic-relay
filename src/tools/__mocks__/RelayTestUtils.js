@@ -30,71 +30,71 @@ var RelayTestUtils = {
     return find(query);
   },
 
-  createRenderer(container) {
-    const React = require('React');
-    const ReactDOM = require('ReactDOM');
-    const RelayPropTypes = require('RelayPropTypes');
-    const RelayRoute = require('RelayRoute');
-
-    class ContextSetter extends React.Component {
-      getChildContext() {
-        return this.props.context;
-      }
-      render() {
-        return this.props.render();
-      }
-    }
-    ContextSetter.childContextTypes = {
-      route: RelayPropTypes.QueryConfig.isRequired,
-    };
-
-    class MockPointer {
-      constructor(dataID) {
-        this.dataID = dataID;
-      }
-    }
-
-    container = container || document.createElement('div');
-
-    return {
-      render(render, route) {
-        route = route || RelayRoute.genMockInstance();
-
-        var result;
-        function ref(component) {
-          result = component;
-        }
-        ReactDOM.render(
-          <ContextSetter
-            context={{route}}
-            render={() => {
-              var element = render(dataID => new MockPointer(dataID));
-              var pointers = {};
-              for (var propName in element.props) {
-                var propValue = element.props[propName];
-                if (propValue instanceof MockPointer) {
-                  var fragmentReference = element.type.getFragment(propName);
-                  if (fragmentReference == null) {
-                    throw new Error(
-                      'Query not found, `' + element.type.displayName + '.' +
-                      propName + '`.'
-                    );
-                  }
-                  pointers[propName] = RelayTestUtils.getPointer(
-                    propValue.dataID,
-                    RelayTestUtils.getNode(fragmentReference.getFragment({}))
-                  );
-                }
-              }
-              return React.cloneElement(element, {...pointers, ref});
-            }}
-          />,
-          container
-        );
-        return result;
-      },
-    };
-  },
+  // createRenderer(container) {
+  //   const React = require('React');
+  //   const ReactDOM = require('ReactDOM');
+  //   const RelayPropTypes = require('RelayPropTypes');
+  //   const RelayRoute = require('RelayRoute');
+  //
+  //   class ContextSetter extends React.Component {
+  //     getChildContext() {
+  //       return this.props.context;
+  //     }
+  //     render() {
+  //       return this.props.render();
+  //     }
+  //   }
+  //   ContextSetter.childContextTypes = {
+  //     route: RelayPropTypes.QueryConfig.isRequired,
+  //   };
+  //
+  //   class MockPointer {
+  //     constructor(dataID) {
+  //       this.dataID = dataID;
+  //     }
+  //   }
+  //
+  //   container = container || document.createElement('div');
+  //
+  //   return {
+  //     render(render, route) {
+  //       route = route || RelayRoute.genMockInstance();
+  //
+  //       var result;
+  //       function ref(component) {
+  //         result = component;
+  //       }
+  //       ReactDOM.render(
+  //         <ContextSetter
+  //           context={{route}}
+  //           render={() => {
+  //             var element = render(dataID => new MockPointer(dataID));
+  //             var pointers = {};
+  //             for (var propName in element.props) {
+  //               var propValue = element.props[propName];
+  //               if (propValue instanceof MockPointer) {
+  //                 var fragmentReference = element.type.getFragment(propName);
+  //                 if (fragmentReference == null) {
+  //                   throw new Error(
+  //                     'Query not found, `' + element.type.displayName + '.' +
+  //                     propName + '`.'
+  //                   );
+  //                 }
+  //                 pointers[propName] = RelayTestUtils.getPointer(
+  //                   propValue.dataID,
+  //                   RelayTestUtils.getNode(fragmentReference.getFragment({}))
+  //                 );
+  //               }
+  //             }
+  //             return React.cloneElement(element, {...pointers, ref});
+  //           }}
+  //         />,
+  //         container
+  //       );
+  //       return result;
+  //     },
+  //   };
+  // },
 
   conditionOnType(fragment) {
     const QueryBuilder = require('QueryBuilder');

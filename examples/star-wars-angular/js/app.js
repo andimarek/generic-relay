@@ -11,7 +11,7 @@
  */
 
 import 'babel/polyfill';
-import Relay from 'react-relay';
+import Relay from 'generic-relay';
 import NgStarWarsApp from './components/NgStarWarsApp';
 import StarWarsAppHomeRoute from './routes/StarWarsAppHomeRoute';
 import angular from 'angular';
@@ -27,7 +27,7 @@ function app() {
     template: '<div><star-wars-app relay-props="vm.relayProps"></star-wars-app></div>',
     bindToController: true,
     controllerAs: 'vm',
-    controller: controllerFn
+    controller: controllerFn,
   };
 
   function controllerFn($scope, $rootScope) {

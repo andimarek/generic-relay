@@ -23,10 +23,10 @@ import type {
 } from 'RelayTypes';
 import type {ConcreteFragment} from 'ConcreteQuery';
 import type {ContainerCallback, ContainerDataState} from 'GenericRelayRootContainer';
-import type {RelayContainerSpec, RelayLazyContainer, RelayQueryConfigSpec} from 'RelayContainer';
+// import type {RelayContainerSpec, RelayLazyContainer, RelayQueryConfigSpec} from 'RelayContainer';
 import type RelayMutationTransaction from 'RelayMutationTransaction';
 import type {RelayQLFragmentBuilder, RelayQLQueryBuilder} from 'buildRQL';
-import type {RelayQuerySet} from 'RelayInternalTypes';
+import type URI from 'URI';
 
 
 const GraphQLFragmentPointer = require('GraphQLFragmentPointer');
@@ -34,7 +34,6 @@ const RelayRecord = require('RelayRecord');
 const GraphQLStoreQueryResolver = require('GraphQLStoreQueryResolver');
 const RelayFragmentReference = require('RelayFragmentReference');
 const RelayMetaRoute = require('RelayMetaRoute');
-const RelayQuery = require('RelayQuery');
 const RelayStore = require('RelayStore');
 const RelayStoreData = require('RelayStoreData');
 
@@ -45,6 +44,28 @@ const shallowEqual = require('shallowEqual');
 const warning = require('warning');
 const {createQuerySetAndFragmentPointers,
   createFragmentPointers} = require('createQuerySetAndFragmentPointers');
+
+export type RelayContainerSpec = {
+  initialVariables?: Variables;
+  prepareVariables?: (
+    prevVariables: Variables,
+    route: RelayMetaRoute
+  ) => Variables;
+  fragments: {
+    [propName: string]: RelayQLFragmentBuilder
+  };
+};
+export type RelayLazyContainer = Function;
+export type RelayQueryConfigSpec = {
+  name: string;
+  params: Variables;
+  queries: RootQueries;
+  uri?: ?URI;
+  useMockData?: bool;
+};
+export type RootQueries = {
+  [queryName: string]: RelayQLQueryBuilder;
+};
 
 
 var storeData = RelayStoreData.getDefaultInstance();

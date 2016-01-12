@@ -19,7 +19,7 @@ import type {
   ReadyState,
   RelayContainer,
 } from 'RelayTypes';
-import type {RelayQueryConfigSpec} from 'RelayContainer';
+import type {RelayQueryConfigSpec} from 'GenericRelayContainer';
 
 const GraphQLFragmentPointer = require('GraphQLFragmentPointer');
 const RelayStore = require('RelayStore');

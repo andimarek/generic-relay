@@ -11,7 +11,7 @@
  */
 
 
-import Relay from 'react-relay';
+import Relay from 'generic-relay';
 import angular from 'angular';
 
 angular.module('starWarsShip', [])

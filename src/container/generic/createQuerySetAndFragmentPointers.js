@@ -10,7 +10,7 @@ import type {
 import type {RelayQuerySet} from 'RelayInternalTypes';
 import type {RelayQLFragmentBuilder} from 'buildRQL';
 import type {ConcreteFragment} from 'ConcreteQuery';
-import type {RelayContainerSpec, RelayQueryConfigSpec} from 'RelayContainer';
+import type {RelayContainerSpec, RelayQueryConfigSpec} from 'GenericRelayContainer';
 
 
 const RelayMetaRoute = require('RelayMetaRoute');

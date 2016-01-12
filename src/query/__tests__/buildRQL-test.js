@@ -30,13 +30,8 @@ describe('buildRQL', () => {
   var MockContainer;
 
   beforeEach(() => {
-    var render = jest.genMockFunction().mockImplementation(function() {
-      // Make it easier to expect prop values.
-      render.mock.calls[render.mock.calls.length - 1].props = this.props;
-      return <div />;
-    });
-    MockComponent = React.createClass({render});
-    MockContainer = Relay.createContainer(MockComponent, {
+
+    MockContainer = Relay.createGenericContainer('MockComponent', {
       fragments: {
         foo: () => Relay.QL`fragment on Node { name }`,
       },
@@ -164,7 +159,7 @@ describe('buildRQL', () => {
     });
 
     it('returns different queries for different components', () => {
-      var MockContainer2 = Relay.createContainer(MockComponent, {
+      var MockContainer2 = Relay.createGenericContainer('MockComponent', {
         fragments: {
           foo: () => Relay.QL`fragment on Node { name }`,
         },
@@ -211,7 +206,7 @@ describe('buildRQL', () => {
     });
 
     it('produces equal results for implicit and explicit definitions', () => {
-      const MockContainer2 = Relay.createContainer(MockComponent, {
+      const MockContainer2 = Relay.createGenericContainer('MockComponent', {
         initialVariables: {
           if: null,
         },
