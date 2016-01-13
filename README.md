@@ -1,29 +1,69 @@
-# [Relay](https://facebook.github.io/relay/) [![Build Status](https://travis-ci.org/facebook/relay.svg)](https://travis-ci.org/facebook/relay) [![npm version](https://badge.fury.io/js/react-relay.svg)](http://badge.fury.io/js/react-relay)
+# Generic-Relay
 
-Relay is a JavaScript framework for building data-driven React applications.
+_Important_: This is an experimental project which will be very likely deprecated when Relay has a clearly defined Relay-Core (See ["Define a clear boundary between Relay Core & Relay/React"](https://github.com/facebook/relay/issues/559)).
 
-* **Declarative:** Never again communicate with your data store using an imperative API. Simply declare your data requirements using GraphQL and let Relay figure out how and when to fetch your data.
-* **Colocation:** Queries live next to the views that rely on them, so you can easily reason about your app. Relay aggregates queries into efficient network requests to fetch only what you need.
-* **Mutations:** Relay lets you mutate data on the client and server using GraphQL mutations, and offers automatic data consistency, optimistic updates, and error handling.
 
-[Learn how to use Relay in your own project.](https://facebook.github.io/relay/docs/getting-started.html)
+## Overview
 
-## Example
+This is a modified version of [Relay](https://github.com/facebook/relay) with the goal to be used without React.
 
-The repository comes with an implementation of [TodoMVC](http://todomvc.com/). To try it out:
+
+Main changes:
+- The name is `generic-relay` and not `react-relay`.
+- It doesn't depend on React anymore and all React related code is deleted or commented out.
+- New modules are added to replace `RelayContainer` et al.
+
+## How to use it
+
+Because it's highly experimental there will be no releases. You have to clone the repo and install it into your project: `npm install <path-to-cloned-repo>`.
+
+The main idea is, not to depend on any specific view technology, but keep everything else.
+That means `RelayContainer` is replaced with `GenericRelayContainer`:
 
 ```
-git clone https://github.com/facebook/relay.git
-cd relay/examples/todo && npm install
-npm start
+const StarWarsShipComponent = Relay.createGenericContainer('StarWarsShip', {
+  fragments: {
+    ship: () => Relay.QL`
+       fragment on Ship {
+         name
+       }
+    `,
+  },
+});
+```
+This component can then be instantiated with a callback function:
+
+```
+const updateCallback = (state) => {
+  if(state.ready) {
+    ... state.data.ship is available
+  }
+};
+const starWarsApp = new StarWarsAppComponent({}, updateCallback);
 ```
 
-Then, just point your browser at `http://localhost:3000`.
+Anytime the input for the component changes, you have to call update:
+```
+starWarsApp.update(input);
+```
+And when new data is available your registered callback function is informed.
 
-## Contribute
 
-We actively welcome pull requests, learn how to [contribute](./CONTRIBUTING.md).
+First create an instance of `GenericRelayRootContainer` and register a callback.
+This callback will be called whenever new data is available.
 
-## License
+const callback = ({data}) => {
+  $scope.$apply(() => {
+    vm.relayProps = data;
+  });
+};
+const rootContainer = new Relay.GenericRootContainer(callback);
+rootContainer.update(NgStarWarsApp, route);
 
-Relay is [BSD licensed](./LICENSE). We also provide an additional [patent grant](./PATENTS).
+
+There is a working example of Relay with Angular in the examples folder: [star-wars-angular](examples/star-wars-angular)
+
+
+## Original Relay License (by Facebook)
+
+Relay is [BSD licensed](./LICENSE). Facebook also provide an additional [patent grant](./PATENTS).
