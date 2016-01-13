@@ -62,7 +62,7 @@ describe('GenericRelayContainer', () => {
 
   it('creates resolvers for each query prop with a fragment pointer', () => {
     const updateCallback = jest.genMockFunction();
-    const container = new MockContainer({}, updateCallback);
+    const container = new MockContainer(updateCallback);
     container.update({foo: mockFooPointer, route:mockRoute});
 
     expect(GraphQLStoreQueryResolver.mock.instances.length).toBe(1);
@@ -73,7 +73,7 @@ describe('GenericRelayContainer', () => {
 
   it('update calls callback', () => {
     const updateCallback = jest.genMockFunction();
-    const container = new MockContainer({}, updateCallback);
+    const container = new MockContainer(updateCallback);
     container.update({foo: mockFooPointer, route:mockRoute});
 
     expect(updateCallback).toBeCalled();
@@ -123,7 +123,7 @@ describe('GenericRelayContainer', () => {
       },
     });
     const updateCallback = jest.genMockFunction();
-    const container = new Container({}, updateCallback);
+    const container = new Container(updateCallback);
     container.update({route: mockRoute});
     container.setVariables({testPhotoSize: 200});
     Relay.Store.primeCache.mock.requests[0].succeed();
@@ -133,7 +133,7 @@ describe('GenericRelayContainer', () => {
 
   it('calls callback when data is changed in the store', () => {
     const updateCallback = jest.genMockFunction();
-    const container = new MockContainer({}, updateCallback);
+    const container = new MockContainer(updateCallback);
 
     var mockData = {__dataID__: '42', id: '42', name: 'Tim'};
 

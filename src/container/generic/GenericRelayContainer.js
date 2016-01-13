@@ -104,11 +104,8 @@ function createContainerComponent(
     };
 
 
-    constructor(props: PropsIncludingRoute, callback: ContainerCallback) {
-      invariant(callback != null, 'A callback function must be provided');
-
-      this.props = props;
-      this.route = props.route;
+    constructor(callback: ContainerCallback) {
+      invariant(callback != null, 'A callback function must be provided');  
       this.callback = callback;
 
       var self: any = this;

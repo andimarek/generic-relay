@@ -48,7 +48,7 @@ function starWarsShip() {
         this.relayData = state.data;
       }
     };
-    const starWarsShip = new StarWarsShipComponent({route: $rootScope.route}, updateCallback);
+    const starWarsShip = new StarWarsShipComponent(updateCallback);
     $scope.$watch('vm.ship', (newValue, oldValue) => {
       if (newValue == null) {
         return;

@@ -61,7 +61,7 @@ function starWarsApp() {
         this.relayData = state.data;
       }
     };
-    const starWarsApp = new StarWarsAppComponent(this.relayProps || {}, updateCallback);
+    const starWarsApp = new StarWarsAppComponent(updateCallback);
 
     $scope.$watch('vm.relayProps', (newValue, oldValue) => {
       if (newValue == null) {
