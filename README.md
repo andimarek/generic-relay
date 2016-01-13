@@ -1,6 +1,6 @@
 # Generic-Relay
 
-_Important_: This is an experimental project which will be very likely deprecated when Relay has a clearly defined Relay-Core (See ["Define a clear boundary between Relay Core & Relay/React"](https://github.com/facebook/relay/issues/559)).
+#####*Important*: This is an experimental project which will be very likely deprecated when Relay has a clearly defined Relay-Core (See ["Define a clear boundary between Relay Core & Relay/React"](https://github.com/facebook/relay/issues/559)).
 
 
 ## Overview
