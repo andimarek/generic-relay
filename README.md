@@ -52,15 +52,6 @@ And when new data is available your registered callback function is informed.
 First create an instance of `GenericRelayRootContainer` and register a callback.
 This callback will be called whenever new data is available.
 
-const callback = ({data}) => {
-  $scope.$apply(() => {
-    vm.relayProps = data;
-  });
-};
-const rootContainer = new Relay.GenericRootContainer(callback);
-rootContainer.update(NgStarWarsApp, route);
-
-
 There is a working example of Relay with Angular in the examples folder: [star-wars-angular](examples/star-wars-angular)
 
 
