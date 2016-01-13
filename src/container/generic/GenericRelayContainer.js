@@ -105,7 +105,7 @@ function createContainerComponent(
 
 
     constructor(callback: ContainerCallback) {
-      invariant(callback != null, 'A callback function must be provided');  
+      invariant(callback != null, 'A callback function must be provided');
       this.callback = callback;
 
       var self: any = this;
@@ -164,7 +164,7 @@ function createContainerComponent(
         containerName,
         this.props,
         this.route,
-        this.variables,
+        variables,
          containerSpec);
       this._updateQueryResolvers();
 
