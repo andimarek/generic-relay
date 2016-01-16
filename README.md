@@ -22,7 +22,7 @@ That means `RelayContainer` is replaced with `GenericRelayContainer` and every
 Container should be paired with a UI-Component which renders the data provided by the Container.
 
 Example:
-```
+```javascript
 const Container = Relay.createGenericContainer('ContainerName', {
   fragments: {
     someFragment: () => Relay.QL`
@@ -40,7 +40,7 @@ The second argument (the Container Specification) is exactly the same as in the 
 This container can then be instantiated with a listener function.
 This callback function is there to inform you about new or changed data.
 
-```
+```javascript
 const updateListener = (state) => {
   if(state.ready) {
     ... state.data.someFragment is available ... normally render it with the paired UI-Component
@@ -53,7 +53,7 @@ for the fragment comes from the parent component/container. How the data is pass
 on the view technology.
 
 Initially and anytime the input for the component changes, you have to call update:
-```
+```javascript
 const dataFromParentComponent = ...
 const route = ...
 starWarsApp.update({route: route, fragmentInput: dataFromParentComponent);
@@ -70,8 +70,7 @@ trigger a refetch of data (and subsequently the listener is informed).
 The root component creates an instance of `GenericRelayRootContainer`, again
 with an listener:
 
-```
-
+```javascript
 const updateListener = (state) => {
   if(state.ready) {
     ... state.data is available ... pass it down in the Component/Container hierarchy
@@ -82,7 +81,7 @@ const rootContainer = new Relay.GenericRootContainer(listener);
 ```
 To initiate data fetching call `update` with a `GenericRelayContainer` and `Route`:
 
-```
+```javascript
 import Container from ....
 const route = ...
 rootContainer.update(Container, route);
@@ -91,7 +90,9 @@ rootContainer.update(Container, route);
 
 There is a full working example of Relay with Angular in the examples folder: [star-wars-angular](examples/star-wars-angular)
 
+## Feedback appreciated
 
+If you have any kind of Feedback or Question, please open an Issue or contact me at [@andimarek](https://twitter.com/andimarek)
 
 ## Original Relay License (by Facebook)
 
