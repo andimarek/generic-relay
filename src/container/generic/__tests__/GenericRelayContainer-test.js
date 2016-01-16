@@ -63,18 +63,18 @@ describe('GenericRelayContainer', () => {
   it('creates resolvers for each query prop with a fragment pointer', () => {
     const updateCallback = jest.genMockFunction();
     const container = new MockContainer(updateCallback);
-    container.update({foo: mockFooPointer, route:mockRoute});
+    container.update({ fragmentInput: {foo: mockFooPointer}, route:mockRoute});
 
     expect(GraphQLStoreQueryResolver.mock.instances.length).toBe(1);
 
-    container.update({foo: mockFooPointer, bar: [mockBarPointer], route:mockRoute});
+    container.update({fragmentInput: {foo: mockFooPointer, bar: [mockBarPointer]}, route:mockRoute});
     expect(GraphQLStoreQueryResolver.mock.instances.length).toBe(2);
   });
 
   it('update calls callback', () => {
     const updateCallback = jest.genMockFunction();
     const container = new MockContainer(updateCallback);
-    container.update({foo: mockFooPointer, route:mockRoute});
+    container.update({fragmentInput:{foo: mockFooPointer}, route:mockRoute});
 
     expect(updateCallback).toBeCalled();
   });
@@ -122,10 +122,14 @@ describe('GenericRelayContainer', () => {
         `,
       },
     });
+    const photoFragment = getNode(Container.getFragment('photo').getFragment());
+    const photoPointer = getPointer('42', photoFragment);
+
     const updateCallback = jest.genMockFunction();
     const container = new Container(updateCallback);
-    container.update({route: mockRoute});
+    container.update({fragmentInput: {photo: photoPointer}, route: mockRoute});
     container.setVariables({testPhotoSize: 200});
+
     Relay.Store.primeCache.mock.requests[0].succeed();
 
     expect(updateCallback.mock.calls.length).toBe(2);
@@ -139,7 +143,7 @@ describe('GenericRelayContainer', () => {
 
     GraphQLStoreQueryResolver.mockDefaultResolveImplementation(() => mockData);
 
-    container.update({foo: mockFooPointer, route:mockRoute});
+    container.update({fragmentInput: {foo: mockFooPointer}, route:mockRoute});
 
     var mockResolvers = GraphQLStoreQueryResolver.mock.instances;
     mockResolvers[0].mock.callback();

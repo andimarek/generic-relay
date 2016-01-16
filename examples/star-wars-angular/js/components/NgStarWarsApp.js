@@ -67,7 +67,7 @@ function starWarsApp() {
       if (newValue == null) {
         return;
       }
-      starWarsApp.update(this.relayProps);
+      starWarsApp.update({route: $rootScope.route, fragmentInput:this.relayProps});
     }, false);
 
   }

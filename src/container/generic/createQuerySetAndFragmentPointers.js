@@ -90,7 +90,7 @@ function createQuerySetAndFragmentPointers(
 
 function createFragmentPointers(
   containerName: string,
-  props: Object,
+  fragmentInput: Object,
   route: RelayQueryConfigSpec,
   variables: Variables,
   containerSpec: RelayContainerSpec
@@ -99,7 +99,7 @@ function createFragmentPointers(
   const result:{[key: string]: ?GraphQLFragmentPointer}  = {};
 
   forEachObject(containerSpec.fragments, (fragmentBuilder, fragmentName) => {
-    const propValue = props[fragmentName];
+    const propValue = fragmentInput[fragmentName];
     warnAboutMissingProp(propValue, fragmentName, containerName);
 
     if (!propValue) {
@@ -167,7 +167,7 @@ function createFragmentPointers(
   if (__DEV__) {
     warnAboutMisplacedProps(
       containerName,
-      props,
+      fragmentInput,
       variables,
       route,
       containerSpec,
@@ -184,7 +184,7 @@ function warnAboutMissingProp(propValue: Object, fragmentName: string,
   warning(
     propValue !== undefined,
     'GenericRelayContainer: Expected query `%s` to be supplied to `%s` as ' +
-    'a prop from the parent. Pass an explicit `null` if this is ' +
+    'a value from the parent. Pass an explicit `null` if this is ' +
     'intentional.',
     fragmentName,
     containerName

@@ -53,7 +53,7 @@ function starWarsShip() {
       if (newValue == null) {
         return;
       }
-      starWarsShip.update({ship: this.ship, route: $rootScope.route});
+      starWarsShip.update({fragmentInput:{ship: this.ship}, route: $rootScope.route});
     },
     false);
   }

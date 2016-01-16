@@ -70,9 +70,11 @@ export type RootQueries = {
 
 var storeData = RelayStoreData.getDefaultInstance();
 
-type PropsIncludingRoute = {
-  [key: string]: mixed,
-  route: RelayQueryConfigSpec
+type FragmentInput = {[key: string]: mixed};
+
+type RouteFragmentInput = {
+  route: RelayQueryConfigSpec,
+  fragmentInput: FragmentInput
 }
 
 function createContainerComponent(
@@ -87,14 +89,15 @@ function createContainerComponent(
 
   class GenericRelayContainer {
     callback: ContainerCallback;
+
+    fragmentInput: FragmentInput;
+    variables: Variables;
     route: RelayQueryConfigSpec;
-    _didShowFakeDataWarning: boolean;
+
     _fragmentPointers: {[key: string]: ?GraphQLFragmentPointer};
     _hasStaleQueryData: boolean;
     _queryResolvers: {[key: string]: ?GraphQLStoreQueryResolver};
-    props: {[key: string]: mixed};
 
-    variables: Variables;
     queryData: {[propName: string]: mixed};
 
 
@@ -104,26 +107,31 @@ function createContainerComponent(
     };
 
 
-    constructor(callback: ContainerCallback) {
+    constructor(callback: ContainerCallback, partialVariables: ?Variables) {
       invariant(callback != null, 'A callback function must be provided');
       this.callback = callback;
 
       var self: any = this;
+      self.cleanup = this.cleanup.bind(this);
+      self.updateFragmentInput = this.updateFragmentInput.bind(this);
+      self.updateRoute = this.updateRoute.bind(this);
+      self.update = this.update.bind(this);
+      self.setVariables = this.setVariables.bind(this);
       self.forceFetch = this.forceFetch.bind(this);
       self.getPendingTransactions = this.getPendingTransactions.bind(this);
       self.hasOptimisticUpdate = this.hasOptimisticUpdate.bind(this);
-      self.setVariables = this.setVariables.bind(this);
 
-      this._didShowFakeDataWarning = false;
+
+      this.variables = mergeVariables(containerName.initialVariables || {}, partialVariables )
+
       this._fragmentPointers = {};
       this._hasStaleQueryData = false;
       this._queryResolvers = {};
 
       this.pending = null;
-      this.variables =  {};
       this.queryData = {};
-    }
 
+    }
 
 
     cleanup(): void {
@@ -145,101 +153,43 @@ function createContainerComponent(
 
     }
 
-    _updateState(variables:Variables, newState: ContainerDataState) {
-      this.variables = variables;
-      this.queryData = newState.data;
-      this.callback(newState);
+
+    updateFragmentInput(fragmentInput: FragmentInput): void {
+      this.update({route:this.route, fragmentInput });
     }
 
+    updateRoute(route: RelayQueryConfigSpec): void {
+      this.update({route, fragmentInput: this.fragmentInput });
+    }
 
-    update(nextProps: PropsIncludingRoute): void {
-      this.props = nextProps;
-      this.route = this.props.route;
-      var variables = getVariablesWithPropOverrides(
-        containerSpec,
-        nextProps,
-        resetPropOverridesForVariables(containerSpec, nextProps, this.variables)
-      );
+    update(routeAndFragmentInput: RouteFragmentInput): void {
+      this.fragmentInput = routeAndFragmentInput.fragmentInput;
+      this.route = routeAndFragmentInput.route;
+      invariant(this.route != null, 'route must be not null for an update');
+      invariant(this.fragmentInput != null, 'fragmentInput must be not null for an update');
+
       this._fragmentPointers =  createFragmentPointers(
         containerName,
-        this.props,
+        this.fragmentInput,
         this.route,
-        variables,
+        this.variables,
          containerSpec);
       this._updateQueryResolvers();
 
-      const queryData = this._getQueryData(nextProps);
+      const queryData = this._getQueryData(this.fragmentInput);
       this._updateState(
-        variables,
+        this.variables,
         {data: queryData, ...doneState}
       );
     }
 
 
-    setVariables(
-      partialVariables?: ?Variables
-    ): void {
+    setVariables(partialVariables: Variables): void {
       this._runVariables(partialVariables, false);
     }
 
-    forceFetch(
-      partialVariables?: ?Variables
-    ): void {
+    forceFetch(partialVariables?: ?Variables): void {
       this._runVariables(partialVariables, true);
-    }
-
-
-
-    _runVariables(
-      partialVariables: ?Variables,
-      forceFetch: boolean
-    ): void {
-      var lastVariables = this.variables;
-      var prevVariables = this.pending ? this.pending.variables : lastVariables;
-      var nextVariables = mergeVariables(prevVariables, partialVariables);
-
-      this.pending && this.pending.request.abort();
-
-      // If variables changed or we are force-fetching, we need to build a new
-      // set of queries that includes the updated variables. Because the pending
-      // fetch is always canceled, always initiate a new fetch.
-      var querySet = {};
-      var fragmentPointers = null;
-      if (forceFetch || !shallowEqual(nextVariables, lastVariables)) {
-        ({querySet, fragmentPointers} =
-          createQuerySetAndFragmentPointers(
-          containerName,
-          storeData,
-          this.variables,
-          this.route,
-          containerSpec,
-          this.queryData));
-      }
-
-      const onReadyStateChange = readyState => {
-        const {aborted, done, error, ready} = readyState;
-        var isComplete = aborted || done || error;
-        if (isComplete && this.pending === current) {
-          this.pending = null;
-        }
-        if (ready && fragmentPointers) {
-          this._fragmentPointers = fragmentPointers;
-          this._updateQueryResolvers();
-          var queryData = this._getQueryData(this.props);
-          this._updateState(nextVariables, {data: queryData, ...readyState});
-        }
-
-      };
-
-      const request = forceFetch ?
-        RelayStore.forceFetch(querySet, onReadyStateChange) :
-        RelayStore.primeCache(querySet, onReadyStateChange);
-
-      var current = {
-        variables: nextVariables,
-        request,
-      };
-      this.pending = current;
     }
 
     /**
@@ -275,6 +225,65 @@ function createContainerComponent(
       return mutationIDs.map(id => mutationQueue.getTransaction(id));
     }
 
+
+    _runVariables(
+      partialVariables: ?Variables,
+      forceFetch: boolean
+    ): void {
+      var lastVariables = this.variables;
+      var prevVariables = this.pending ? this.pending.variables : lastVariables;
+      var nextVariables = mergeVariables(prevVariables, partialVariables);
+
+      this.pending && this.pending.request.abort();
+
+      // If variables changed or we are force-fetching, we need to build a new
+      // set of queries that includes the updated variables. Because the pending
+      // fetch is always canceled, always initiate a new fetch.
+      var querySet = {};
+      var fragmentPointers = null;
+      if (forceFetch || !shallowEqual(nextVariables, lastVariables)) {
+        ({querySet, fragmentPointers} =
+          createQuerySetAndFragmentPointers(
+          containerName,
+          storeData,
+          nextVariables,
+          this.route,
+          containerSpec,
+          this.queryData));
+      }
+
+      const onReadyStateChange = readyState => {
+        const {aborted, done, error, ready} = readyState;
+        var isComplete = aborted || done || error;
+        if (isComplete && this.pending === current) {
+          this.pending = null;
+        }
+        if (ready && fragmentPointers) {
+          this._fragmentPointers = fragmentPointers;
+          this._updateQueryResolvers();
+          var queryData = this._getQueryData(this.fragmentInput);
+          this._updateState(nextVariables, {data: queryData, ...readyState});
+        }
+
+      };
+
+      const request = forceFetch ?
+        RelayStore.forceFetch(querySet, onReadyStateChange) :
+        RelayStore.primeCache(querySet, onReadyStateChange);
+
+      var current = {
+        variables: nextVariables,
+        request,
+      };
+      this.pending = current;
+    }
+
+    _updateState(variables:Variables, newState: ContainerDataState) {
+      this.variables = variables;
+      this.queryData = newState.data;
+      this.callback(newState);
+    }
+
     _updateQueryResolvers(): void {
       var fragmentPointers = this._fragmentPointers;
       var queryResolvers = this._queryResolvers;
@@ -298,31 +307,31 @@ function createContainerComponent(
     }
 
     _handleFragmentDataUpdate(): void {
-      const queryData = this._getQueryData(this.props);
+      const queryData = this._getQueryData(this.fragmentInput);
       this._updateState(this.variables, {data:queryData, ...doneState});
     }
 
 
 
     _getQueryData(
-      props: Object
+      fragmentInput: Object
     ): Object {
       var queryData = {};
       var fragmentPointers = this._fragmentPointers;
-      forEachObject(this._queryResolvers, (queryResolver, propName) => {
-        var propValue = props[propName];
-        var fragmentPointer = fragmentPointers[propName];
+      forEachObject(this._queryResolvers, (queryResolver, fragmentName) => {
+        var fragmentInputValue = fragmentInput[fragmentName];
+        var fragmentPointer = fragmentPointers[fragmentName];
 
-        if (!propValue || !fragmentPointer) {
+        if (!fragmentInputValue || !fragmentPointer) {
           // Clear any subscriptions since there is no data.
           queryResolver && queryResolver.reset();
           // Allow mock data to pass through without modification.
-          queryData[propName] = propValue;
+          queryData[fragmentName] = fragmentInputValue;
         } else {
-          queryData[propName] = queryResolver.resolve(fragmentPointer);
+          queryData[fragmentName] = queryResolver.resolve(fragmentPointer);
         }
-        if (this.queryData.hasOwnProperty(propName) &&
-            queryData[propName] !== this.queryData[propName]) {
+        if (this.queryData.hasOwnProperty(fragmentName) &&
+            queryData[fragmentName] !== this.queryData[fragmentName]) {
           this._hasStaleQueryData = true;
         }
       });
@@ -334,47 +343,6 @@ function createContainerComponent(
   return GenericRelayContainer;
 }
 
-/**
- * TODO: Stop allowing props to override variables, #7856288.
- */
-function getVariablesWithPropOverrides(
-  containerSpec: RelayContainerSpec,
-  props: Object,
-  variables: Variables
-): Variables {
-  var initialVariables = containerSpec.initialVariables;
-  if (initialVariables) {
-    var mergedVariables;
-    for (var key in initialVariables) {
-      if (key in props) {
-        mergedVariables = mergedVariables || {...variables};
-        mergedVariables[key] = props[key];
-      }
-    }
-    variables = mergedVariables || variables;
-  }
-  return variables;
-}
-
-/**
- * Compare props and variables and reset the internal query variables if outside
- * query variables change the component.
- *
- * TODO: Stop allowing props to override variables, #7856288.
- */
-function resetPropOverridesForVariables(
-  containerSpec: RelayContainerSpec,
-  props: Object,
-  variables: Variables
-): Variables {
-  var initialVariables = containerSpec.initialVariables;
-  for (var key in initialVariables) {
-    if (key in props && props[key] != variables[key]) {
-      return initialVariables;
-    }
-  }
-  return variables;
-}
 
 /**
  * Merges a partial update into a set of variables. If no variables changed, the
