@@ -70,7 +70,7 @@ export type RootQueries = {
 
 var storeData = RelayStoreData.getDefaultInstance();
 
-type FragmentInput = {[key: string]: mixed};
+type FragmentInput = {[fragmentName: string]: mixed};
 
 type RouteFragmentInput = {
   route: RelayQueryConfigSpec,
@@ -122,7 +122,9 @@ function createContainerComponent(
       self.hasOptimisticUpdate = this.hasOptimisticUpdate.bind(this);
 
 
-      this.variables = mergeVariables(containerName.initialVariables || {}, partialVariables )
+      this.variables = mergeVariables(
+        containerName.initialVariables || {},
+        partialVariables);
 
       this._fragmentPointers = {};
       this._hasStaleQueryData = false;
@@ -177,8 +179,7 @@ function createContainerComponent(
       this._updateQueryResolvers();
 
       const queryData = this._getQueryData(this.fragmentInput);
-      this._updateState(
-        this.variables,
+      this._newDataAvailable(
         {data: queryData, ...doneState}
       );
     }
@@ -230,6 +231,9 @@ function createContainerComponent(
       partialVariables: ?Variables,
       forceFetch: boolean
     ): void {
+      invariant(this.fragmentInput != null,
+        'container must be updated before variables can be changed');
+
       var lastVariables = this.variables;
       var prevVariables = this.pending ? this.pending.variables : lastVariables;
       var nextVariables = mergeVariables(prevVariables, partialVariables);
@@ -262,7 +266,7 @@ function createContainerComponent(
           this._fragmentPointers = fragmentPointers;
           this._updateQueryResolvers();
           var queryData = this._getQueryData(this.fragmentInput);
-          this._updateState(nextVariables, {data: queryData, ...readyState});
+          this._newDataAvailable({data: queryData, ...readyState});
         }
 
       };
@@ -278,8 +282,7 @@ function createContainerComponent(
       this.pending = current;
     }
 
-    _updateState(variables:Variables, newState: ContainerDataState) {
-      this.variables = variables;
+    _newDataAvailable(newState: ContainerDataState) {
       this.queryData = newState.data;
       this.callback(newState);
     }
@@ -308,13 +311,13 @@ function createContainerComponent(
 
     _handleFragmentDataUpdate(): void {
       const queryData = this._getQueryData(this.fragmentInput);
-      this._updateState(this.variables, {data:queryData, ...doneState});
+      this._newDataAvailable({data:queryData, ...doneState});
     }
 
 
 
     _getQueryData(
-      fragmentInput: Object
+      fragmentInput: FragmentInput
     ): Object {
       var queryData = {};
       var fragmentPointers = this._fragmentPointers;
@@ -337,7 +340,6 @@ function createContainerComponent(
       });
       return queryData;
     }
-
 }
 
   return GenericRelayContainer;
