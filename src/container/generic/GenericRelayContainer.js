@@ -15,15 +15,10 @@
 
 import type {
   Abortable,
-  ComponentReadyStateChangeCallback,
-  RelayContainer,
-  RelayProp,
-  Subscription,
   Variables,
 } from 'RelayTypes';
 import type {ConcreteFragment} from 'ConcreteQuery';
-import type {ContainerCallback, ContainerDataState} from 'GenericRelayRootContainer';
-// import type {RelayContainerSpec, RelayLazyContainer, RelayQueryConfigSpec} from 'RelayContainer';
+import type {DataChangeListener, ContainerDataState} from 'GenericRelayRootContainer';
 import type RelayMutationTransaction from 'RelayMutationTransaction';
 import type {RelayQLFragmentBuilder, RelayQLQueryBuilder} from 'buildRQL';
 import type URI from 'URI';
@@ -88,7 +83,7 @@ function createContainerComponent(
   const doneState = {done:true, ready:true, aborted:false, stale:false};
 
   class GenericRelayContainer {
-    callback: ContainerCallback;
+    dataChangeListener: DataChangeListener;
 
     fragmentInput: FragmentInput;
     variables: Variables;
@@ -107,9 +102,9 @@ function createContainerComponent(
     };
 
 
-    constructor(callback: ContainerCallback, partialVariables: ?Variables) {
-      invariant(callback != null, 'A callback function must be provided');
-      this.callback = callback;
+    constructor(dataChangeListener: DataChangeListener, partialVariables: ?Variables) {
+      invariant(dataChangeListener != null, 'A listener function must be provided');
+      this.dataChangeListener = dataChangeListener;
 
       var self: any = this;
       self.cleanup = this.cleanup.bind(this);
@@ -284,7 +279,7 @@ function createContainerComponent(
 
     _newDataAvailable(newState: ContainerDataState) {
       this.queryData = newState.data;
-      this.callback(newState);
+      this.dataChangeListener(newState);
     }
 
     _updateQueryResolvers(): void {

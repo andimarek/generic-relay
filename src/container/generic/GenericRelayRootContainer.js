@@ -14,10 +14,7 @@
 'use strict';
 
 import type {
-  Abortable,
-  ComponentReadyState,
-  ReadyState,
-  RelayContainer,
+  Abortable
 } from 'RelayTypes';
 import type {RelayQueryConfigSpec} from 'GenericRelayContainer';
 
@@ -36,28 +33,28 @@ export type ContainerDataState = {
   error?: ?Error;
   data: {[key: string]: mixed}
 };
-export type ContainerCallback = (state: ContainerDataState) => void;
+export type DataChangeListener = (state: ContainerDataState) => void;
 
 
 class GenericRelayRootContainer {
-  callback: ContainerCallback;
+  dataChangeListener: DataChangeListener;
 
-  Component: any;
+  Container: any;
   route: RelayQueryConfigSpec;
 
   active: boolean;
   pendingRequest: ?Abortable;
 
 
-  constructor(callback: ContainerCallback) {
-    this.callback = callback;
+  constructor(dataChangeListener: DataChangeListener) {
+    this.dataChangeListener = dataChangeListener;
   }
 
-  update(Component: Object, route: RelayQueryConfigSpec, forceFetch: boolean) {
+  update(Container: Object, route: RelayQueryConfigSpec, forceFetch: ?boolean) {
     this.active = true;
-    this.Component = Component;
+    this.Container = Container;
     this.route = route;
-    this._runQueries(forceFetch);
+    this._runQueries(forceFetch != null ? forceFetch : false);
   }
 
   cleanup(): void {
@@ -68,7 +65,7 @@ class GenericRelayRootContainer {
   }
 
   _runQueries(forceFetch: boolean) {
-    const querySet = getRelayQueries(this.Component, this.route);
+    const querySet = getRelayQueries(this.Container, this.route);
     const onReadyStateChange = readyState => {
       if (!this.active) {
         return;
@@ -86,7 +83,7 @@ class GenericRelayRootContainer {
           ...this.route.params,
           ...mapObject(querySet, createFragmentPointerForRoot),
         };
-        this._callCallback({data, ...readyState});
+        this._informListener({data, ...readyState});
       }
     };
 
@@ -96,8 +93,8 @@ class GenericRelayRootContainer {
     this.pendingRequest = request;
   }
 
-  _callCallback(state: ContainerDataState) {
-    this.callback(state);
+  _informListener(state: ContainerDataState) {
+    this.dataChangeListener(state);
   }
 }
 

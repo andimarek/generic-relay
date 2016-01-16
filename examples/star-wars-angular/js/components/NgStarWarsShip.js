@@ -17,7 +17,7 @@ import angular from 'angular';
 angular.module('starWarsShip', [])
 .directive('starWarsShip', starWarsShip);
 
-const StarWarsShipComponent = Relay.createGenericContainer('StarWarsShip', {
+const StarWarsShipContainer = Relay.createGenericContainer('StarWarsShip', {
   fragments: {
     ship: () => Relay.QL`
        fragment on Ship {
@@ -41,14 +41,14 @@ function starWarsShip() {
   };
 
   function controllerFn($scope, $rootScope) {
-    const updateCallback = (state) => {
+    const updateListener = (state) => {
       if (!$rootScope.$$phase) {
         $scope.$apply(() => {this.relayData = state.data;});
       }else {
         this.relayData = state.data;
       }
     };
-    const starWarsShip = new StarWarsShipComponent(updateCallback);
+    const starWarsShip = new StarWarsShipContainer(updateListener);
     $scope.$watch('vm.ship', (newValue, oldValue) => {
       if (newValue == null) {
         return;
@@ -60,4 +60,4 @@ function starWarsShip() {
 }
 
 
-export default StarWarsShipComponent;
+export default StarWarsShipContainer;

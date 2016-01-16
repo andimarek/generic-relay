@@ -18,7 +18,7 @@ import StarWarsShip from './NgStarWarsShip';
 angular.module('starWarsApp', ['starWarsShip'])
  .directive('starWarsApp', starWarsApp);
 
-const StarWarsAppComponent = Relay.createGenericContainer('StartWarsApp', {
+const StarWarsAppContainer = Relay.createGenericContainer('StartWarsApp', {
   fragments: {
     factions: () => Relay.QL`
       fragment on Faction @relay(plural: true) {
@@ -54,14 +54,14 @@ function starWarsApp() {
 
   function controllerFn($scope, $rootScope) {
 
-    const updateCallback = (state) => {
+    const updateListener = (state) => {
       if (!$rootScope.$$phase) {
         $scope.$apply(() => {this.relayData = state.data;});
       }else {
         this.relayData = state.data;
       }
     };
-    const starWarsApp = new StarWarsAppComponent(updateCallback);
+    const starWarsApp = new StarWarsAppContainer(updateListener);
 
     $scope.$watch('vm.relayProps', (newValue, oldValue) => {
       if (newValue == null) {
@@ -73,4 +73,4 @@ function starWarsApp() {
   }
 }
 
-export default StarWarsAppComponent;
+export default StarWarsAppContainer;
