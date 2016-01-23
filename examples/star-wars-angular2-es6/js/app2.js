@@ -2,7 +2,7 @@ import 'zone.js/lib/browser/zone-microtask';
 import 'reflect-metadata';
 import 'babel/polyfill';
 
-import {provide, Component, View} from 'angular2/core';
+import { provide, Component, View, Input, NgZone } from 'angular2/core';
 import {bootstrap} from 'angular2/platform/browser';
 import {ROUTER_PROVIDERS, LocationStrategy, HashLocationStrategy} from 'angular2/router';
 
@@ -18,22 +18,25 @@ import { StarWarsApp, StarWarsAppContainer } from './components/Ng2StarWarsApp';
 @View({
   directives: [StarWarsApp],
   template: `
-    <h1>Hello <star-wars-app [relay-props]="relayProps"></star-wars-app></h1>
+    <h1>Hello <star-wars-app [relayProps]="relayProps" [route]="route"></star-wars-app></h1>
   `
 })
 class App {
-  constructor() {
+  constructor(ngZone: NgZone) {
     const route = new StarWarsAppHomeRoute({
       factionNames: ['empire', 'rebels'],
     });
 
     const listener = ({data}) => {
-      console.log('received new data', data);
-      this.relayProps = data;
+      ngZone.run(() => {
+        this.relayProps = data;
+      });
     };
 
     const rootContainer = new Relay.GenericRootContainer(listener);
     rootContainer.update(StarWarsAppContainer, route);
+
+    this.route = route;
   }
 
 }

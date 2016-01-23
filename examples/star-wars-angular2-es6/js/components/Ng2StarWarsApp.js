@@ -13,14 +13,36 @@ const StarWarsAppContainer = Relay.createGenericContainer('StartWarsApp', {
 
 @Component({
   selector: 'star-wars-app',
-  template: '<p>App</p>'
+  template: `
+    App
+      <ul>
+        <li *ngFor="#faction of relayData.factions;">
+          {{faction.name}}
+        </li>
+      </ul>`
 })
 class StarWarsApp {
-  @Input() relayProps;
-  @Input() route;
+  @Input() relayProps = '';
+  @Input() route = '';
 
   constructor() {
+    this.relayData = {factions: []};
+    const updateListener = (state) => {
+      this.relayData = state.data;
+    };
+    this.starWarsApp = new StarWarsAppContainer(updateListener);
   }
+
+  ngOnChanges(newState) {
+
+    const route = newState.route ? newState.route.currentValue : this.route;
+    const relayProps = newState.relayProps ? newState.relayProps.currentValue : this.relayProps;
+    
+    if (route && relayProps) {
+      this.starWarsApp.update({route: route, fragmentInput: relayProps});
+    }
+  }
+
 }
 
 export { StarWarsAppContainer, StarWarsApp };
