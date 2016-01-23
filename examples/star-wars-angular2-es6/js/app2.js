@@ -18,7 +18,8 @@ import { StarWarsApp, StarWarsAppContainer } from './components/Ng2StarWarsApp';
 @View({
   directives: [StarWarsApp],
   template: `
-    <h1>Hello <star-wars-app [relayProps]="relayProps" [route]="route"></star-wars-app></h1>
+    <h1>Star Wars App</h1>
+    <star-wars-app [relayProps]="relayProps" [route]="route"></star-wars-app>
   `
 })
 class App {
