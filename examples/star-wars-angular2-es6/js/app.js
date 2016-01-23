@@ -14,7 +14,7 @@ import 'babel/polyfill';
 import Relay from 'generic-relay';
 import NgStarWarsApp from './components/NgStarWarsApp';
 import StarWarsAppHomeRoute from './routes/StarWarsAppHomeRoute';
-import angular from 'angular';
+import angular from 'angular2/bundles/angular2';
 
 angular.module('ngStarWars', ['starWarsApp'])
 .directive('app', app);
