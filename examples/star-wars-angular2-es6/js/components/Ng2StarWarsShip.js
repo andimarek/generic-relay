@@ -23,7 +23,7 @@ class StarWarsShip {
     this.ship = {};
 
     const updateListener = (state) => {
-      this.ship = state.data.ship
+      this.ship = state.data.ship;
     };
     this.starWarsShipContainer = new StarWarsShipContainer(updateListener);
   }
