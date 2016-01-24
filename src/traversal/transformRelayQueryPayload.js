@@ -14,17 +14,15 @@
 'use strict';
 
 const RelayQuery = require('RelayQuery');
-const RelayQueryIndexPath = require('RelayQueryIndexPath');
 const RelayQueryVisitor = require('RelayQueryVisitor');
+import type {QueryPayload} from 'RelayInternalTypes';
 
 const invariant = require('invariant');
 const mapObject = require('mapObject');
 
-type Payload = mixed;
 type PayloadState = {
-  client: Payload;
-  indexPath: RelayQueryIndexPath;
-  server: Payload;
+  client: QueryPayload,
+  server: QueryPayload,
 };
 
 /**
@@ -35,23 +33,14 @@ type PayloadState = {
  */
 function transformRelayQueryPayload(
   root: RelayQuery.Root,
-  clientData: Payload
-): Payload {
-  // Handle both FB & OSS formats for root payloads on plural calls: FB
-  // returns objects with array values, OSS returns arrays.
+  clientData: QueryPayload
+): QueryPayload {
   if (clientData == null) {
     return clientData;
-  } else if (Array.isArray(clientData)) {
-    return clientData.map(item => transform(root, item));
   } else {
-    invariant(
-      typeof clientData === 'object',
-      'transformClientPayload(): Expected the root payload for query `%s` ' +
-      'to be an array or object, got `%s`.',
-      root.getName(),
-      clientData
-    );
     return mapObject(clientData, item => {
+      // Handle both FB & OSS formats for root payloads on plural calls: FB
+      // returns objects, OSS returns arrays.
       if (Array.isArray(item)) {
         return item.map(innerItem => transform(root, innerItem));
       }
@@ -62,8 +51,8 @@ function transformRelayQueryPayload(
 
 function transform(
   root: RelayQuery.Root,
-  clientData: Payload
-): Payload {
+  clientData: QueryPayload
+): QueryPayload {
   if (clientData == null) {
     return clientData;
   }
@@ -71,30 +60,17 @@ function transform(
   var serverData = {};
   transform.visit(root, {
     client: clientData,
-    indexPath: new RelayQueryIndexPath(),
     server: serverData,
   });
   return serverData;
 }
 
 class RelayPayloadTransformer extends RelayQueryVisitor<PayloadState> {
-  traverseChildren(
-    node: RelayQuery.Node,
-    state: PayloadState,
-    callback: (
-      child: RelayQuery.Node,
-      index: number,
-      children: Array<RelayQuery.Node>
-    ) => void
-  ): void {
-    state.indexPath.traverse(node, callback);
-  }
-
   visitField(
     node: RelayQuery.Field,
     state: PayloadState
   ): void {
-    var {client, indexPath, server} = state;
+    var {client, server} = state;
     // `client` represents the *parent* node value and should not be null
     // due to checks before traversing child values.
     invariant(
@@ -108,23 +84,23 @@ class RelayPayloadTransformer extends RelayQueryVisitor<PayloadState> {
       node.getApplicationName()
     );
     var applicationName = node.getApplicationName();
-    var serializationKey = node.getSerializationKey(indexPath);
+    var serializationKey = node.getSerializationKey();
     var clientData = client[applicationName];
     var serverData = server[serializationKey];
 
     if (node.isScalar() || clientData == null) {
       server[serializationKey] = clientData;
     } else if (Array.isArray(clientData)) {
-      invariant(
-        serverData == null || Array.isArray(serverData),
-        'RelayPayloadTransformer: Got conflicting values for field `%s`: ' +
-        'expected values to be arrays.',
-        applicationName
-      );
       if (serverData == null) {
         server[serializationKey] = serverData = [];
       }
       clientData.forEach((clientItem, index) => {
+        invariant(
+          Array.isArray(serverData),
+          'RelayPayloadTransformer: Got conflicting values for field `%s`: ' +
+          'expected values to be arrays.',
+          applicationName
+        );
         if (clientItem == null) {
           serverData[index] = clientItem;
           return;
@@ -135,7 +111,6 @@ class RelayPayloadTransformer extends RelayQueryVisitor<PayloadState> {
         }
         this.traverse(node, {
           client: clientItem,
-          indexPath,
           server: serverItem,
         });
       });
@@ -156,7 +131,6 @@ class RelayPayloadTransformer extends RelayQueryVisitor<PayloadState> {
       }
       this.traverse(node, {
         client: clientData,
-        indexPath,
         server: serverData,
       });
     }
