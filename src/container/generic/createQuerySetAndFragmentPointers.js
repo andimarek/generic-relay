@@ -216,7 +216,7 @@ function warnAboutMisplacedProps(
     Object.keys(props).forEach(propName => {
       warning(
         fragmentPointers[propName] ||
-        !props[propName] ||
+        !RelayRecord.isRecord(props[propName]) ||
         !props[propName][concreteFragmentHash],
         'GenericRelayContainer: Expected record data for prop `%s` on `%s`, ' +
         'but it was instead on prop `%s`. Did you misspell a prop or ' +
