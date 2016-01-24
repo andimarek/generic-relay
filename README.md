@@ -1,29 +1,99 @@
-# [Relay](https://facebook.github.io/relay/) [![Build Status](https://travis-ci.org/facebook/relay.svg)](https://travis-ci.org/facebook/relay) [![npm version](https://badge.fury.io/js/react-relay.svg)](http://badge.fury.io/js/react-relay)
+# Generic-Relay
 
-Relay is a JavaScript framework for building data-driven React applications.
+####*Important*: This is an experimental project which will be very likely deprecated when Relay has a clearly defined Relay-Core (See ["Define a clear boundary between Relay Core & Relay/React"](https://github.com/facebook/relay/issues/559)).
 
-* **Declarative:** Never again communicate with your data store using an imperative API. Simply declare your data requirements using GraphQL and let Relay figure out how and when to fetch your data.
-* **Colocation:** Queries live next to the views that rely on them, so you can easily reason about your app. Relay aggregates queries into efficient network requests to fetch only what you need.
-* **Mutations:** Relay lets you mutate data on the client and server using GraphQL mutations, and offers automatic data consistency, optimistic updates, and error handling.
 
-[Learn how to use Relay in your own project.](https://facebook.github.io/relay/docs/getting-started.html)
+## Overview
 
-## Example
+This is a modified version of [Relay](https://github.com/facebook/relay) with the goal to be used without React.
 
-The repository comes with an implementation of [TodoMVC](http://todomvc.com/). To try it out:
 
+Main changes:
+- The name is `generic-relay` and not `react-relay`.
+- It doesn't depend on React anymore and all React related code is removed.
+- New modules are added to replace `RelayContainer` et al.
+
+## How to use it
+
+Because it's highly experimental there will be no releases. You have to clone the repo and install it into your project: `npm install <path-to-cloned-repo>`.
+
+The main idea is, not to depend on any specific view technology, but keep everything else.
+That means `RelayContainer` is replaced with `GenericRelayContainer` and every
+Container should be paired with a UI-Component which renders the data provided by the Container.
+
+Example:
+```javascript
+const Container = Relay.createGenericContainer('ContainerName', {
+  fragments: {
+    someFragment: () => Relay.QL`
+       fragment on Example {
+         name
+       }
+    `,
+  },
+});
 ```
-git clone https://github.com/facebook/relay.git
-cd relay/examples/todo && npm install
-npm start
+The second argument (the Container Specification) is exactly the same as in the normal `Relay.createContainer`.
+(See the [doc](https://facebook.github.io/relay/docs/api-reference-relay-container.html#content) for details).
+
+
+This container can then be instantiated with a listener function.
+This callback function is there to inform you about new or changed data.
+
+```javascript
+const updateListener = (state) => {
+  if(state.ready) {
+    ... state.data.someFragment is available ... normally render it with the paired UI-Component
+  }
+};
+const container = new Container(updateListener);
+```
+Any container needs a [Route](https://facebook.github.io/relay/docs/api-reference-relay-route.html#content) and data for every fragment. The data
+for the fragment comes from the parent component/container. How the data is passed down depends
+on the view technology.
+
+Initially and anytime the input for the component changes, you have to call update:
+```javascript
+const dataFromParentComponent = ...
+const route = ...
+starWarsApp.update({route: route, fragmentInput: dataFromParentComponent);
+```
+And then when new data is available your listener function is called.
+
+Initial variables for a specific instance
+can be supplied in the constructor as second argument. They will be merged
+with the initial variables of the container specifications.
+
+To change variables after that use `setVariables(partialVariables)`. This will
+trigger a refetch of data (and subsequently the listener is informed).
+
+The root component creates an instance of `GenericRelayRootContainer`, again
+with an listener:
+
+```javascript
+const updateListener = (state) => {
+  if(state.ready) {
+    ... state.data is available ... pass it down in the Component/Container hierarchy
+  }
+};
+
+const rootContainer = new Relay.GenericRootContainer(listener);
+```
+To initiate data fetching call `update` with a `GenericRelayContainer` and `Route`:
+
+```javascript
+import Container from ....
+const route = ...
+rootContainer.update(Container, route);
 ```
 
-Then, just point your browser at `http://localhost:3000`.
 
-## Contribute
+There is a full working example of Relay with Angular in the examples folder: [star-wars-angular](examples/star-wars-angular)
 
-We actively welcome pull requests, learn how to [contribute](./CONTRIBUTING.md).
+## Feedback appreciated
 
-## License
+If you have any kind of Feedback or Question, please open an Issue or contact me at [@andimarek](https://twitter.com/andimarek)
 
-Relay is [BSD licensed](./LICENSE). We also provide an additional [patent grant](./PATENTS).
+## Original Relay License (by Facebook)
+
+Relay is [BSD licensed](./LICENSE). Facebook also provide an additional [patent grant](./PATENTS).

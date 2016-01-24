@@ -13,12 +13,9 @@
 
 'use strict';
 
-const RelayContainer = require('RelayContainer');
 const RelayMutation = require('RelayMutation');
 const RelayNetworkLayer = require('RelayNetworkLayer');
-const RelayPropTypes = require('RelayPropTypes');
 const RelayQL = require('RelayQL');
-const RelayRootContainer = require('RelayRootContainer');
 const RelayRoute = require('RelayRoute');
 const RelayStore = require('RelayStore');
 const RelayTaskScheduler = require('RelayTaskScheduler');
@@ -27,6 +24,8 @@ const RelayInternals = require('RelayInternals');
 const createRelayQuery = require('createRelayQuery');
 const getRelayQueries = require('getRelayQueries');
 const isRelayContainer = require('isRelayContainer');
+const GenericRelayRootContainer = require('GenericRelayRootContainer');
+const GenericRelayContainer = require('GenericRelayContainer');
 
 if (typeof global.__REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined') {
   global.__REACT_DEVTOOLS_GLOBAL_HOOK__._relayInternals = RelayInternals;
@@ -38,13 +37,12 @@ if (typeof global.__REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined') {
  */
 var RelayPublic = {
   Mutation: RelayMutation,
-  PropTypes: RelayPropTypes,
   QL: RelayQL,
-  RootContainer: RelayRootContainer,
   Route: RelayRoute,
   Store: RelayStore,
 
-  createContainer: RelayContainer.create,
+  createGenericContainer: GenericRelayContainer.create,
+  GenericRootContainer: GenericRelayRootContainer,
   createQuery: createRelayQuery,
   getQueries: getRelayQueries,
   injectNetworkLayer: RelayNetworkLayer.injectNetworkLayer,
